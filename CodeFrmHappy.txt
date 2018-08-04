@@ -1,0 +1,219 @@
+Option Compare Database
+Option Explicit
+
+
+Private Declare PtrSafe Function GetCursorPos Lib "user32" (lpPoint As POINTAPI) As Long
+Private Declare Function FindWindowEx Lib "user32" Alias "FindWindowExA" _
+                                (ByVal hWnd1 As Long, _
+                                 ByVal hWnd2 As Long, _
+                                 ByVal lpsz1 As String, _
+                                 ByVal lpsz2 As String) _
+                         As Long
+
+Private Declare Function GetWindowRect Lib "user32.dll" _
+                                (ByVal hwnd As Long, _
+                                 ByRef lpRect As RECT) _
+                         As Long
+Private Type RECT
+   Left As Long
+   Top As Long
+   Right As Long
+   Bottom As Long
+End Type
+' Create custom variable that holds two integers
+Private Type POINTAPI
+   Xcoord As Long
+   Ycoord As Long
+End Type
+
+Public eyeRightL As Long
+Public eyeRightT As Long
+
+Public eyeLeftL As Long
+Public eyeLeftT As Long
+
+Private Sub Caixa19_Click()
+  btnLogin.SetFocus
+End Sub
+
+Private Sub Form_Click()
+  btnLogin.SetFocus
+End Sub
+
+Private Sub Form_Current()
+    'txtTeste.SetFocus
+    btnLogin.SetFocus
+    eyeLeftL = Me.eyeLeft.Left
+    eyeLeftT = Me.eyeLeft.Top
+    eyeRightL = Me.eyeRight.Left
+    eyeRightT = Me.eyeRight.Top
+End Sub
+
+
+Private Sub Form_Timer()
+    'if the formcontrol active is the Login we dont need to move the eyes
+    If (txtLogin Is Me.ActiveControl) Then Exit Sub
+    If (txtSenha Is Me.ActiveControl) Then Exit Sub
+    
+    Dim myPointMouse As POINTAPI 'Coord X and Y of Mouse
+    Dim frmPos As RECT 'Picture Rect = RECTANGLE , so we can fin the 4 points (Left , right , top bottom'
+    Dim OlhoEsquerdo_X, OlhoEsquerdo_Y, OlhoDireito_X, OlhoDireito_Y 'Or points Absolute position X Y in screen]
+    
+    'Get the points X Y of the mouse
+    GetCursorPos myPointMouse
+    Me.Xpos = myPointMouse.Xcoord
+    Me.Ypos = myPointMouse.Ycoord
+    
+    'Get the X Y of the hwnd(form)
+    Call GetWindowRect(Me.hwnd, frmPos)
+    
+    'The image(the face of the boy) is not in the same position
+    'So we need to sum a little of points in the X and Y
+    OlhoEsquerdo_X = frmPos.Left + 152
+    OlhoDireito_X = frmPos.Left + 245
+    
+    OlhoEsquerdo_Y = (frmPos.Top + 44) + 185
+    OlhoDireito_Y = (frmPos.Top + 44) + 185
+    
+    
+    Dim Top, Left 'This is the position we gonna use for the Eyes
+    
+    'If the little eye ball gonna overcome the Eye white ball we need
+    'to certificate that the eye gonna be on the boundry but not
+    'overcome it
+    
+    'Get the LEFT pos of the Eye Left
+    If myPointMouse.Xcoord >= OlhoEsquerdo_X + 50 Then
+        Left = eyeLeftL + 83
+        Left = eyeLeftL + 70
+    ElseIf myPointMouse.Xcoord <= OlhoEsquerdo_X Then
+        Left = eyeLeftL - 70
+        
+    Else
+        Left = eyeLeftL + ((myPointMouse.Xcoord - OlhoEsquerdo_X) * 3)
+    End If
+    
+    'Get the TOP position of the Eye left and Right
+    'The top is equal for the 2 of them
+    If OlhoEsquerdo_Y < myPointMouse.Ycoord + 32 Then
+        Top = 2900
+    ElseIf OlhoEsquerdo_Y > myPointMouse.Ycoord Then
+        Top = 2715
+    Else
+        Top = eyeLeftT - Abs(OlhoEsquerdo_Y - myPointMouse.Ycoord)
+    End If
+    
+    'Set the position of the leftEye
+    [Form_Happy Form].eyeLeft.Left = Left
+    [Form_Happy Form].eyeLeft.Top = Top
+    
+    'get the position left of the RightEye
+    If myPointMouse.Xcoord >= OlhoDireito_X + 50 Then
+        'Left = 2438
+        Left = eyeRightL + 70
+    ElseIf myPointMouse.Xcoord <= OlhoDireito_X - 16 Then
+        'Left = 2288
+        Left = eyeRightL - 70
+    Else
+        Left = eyeRightL + ((myPointMouse.Xcoord - OlhoEsquerdo_X) * 0.6)
+    End If
+    
+    [Form_Happy Form].eyeRight.Left = Left
+    [Form_Happy Form].eyeRight.Top = Top
+    
+End Sub
+
+Private Sub Rótulo21_Click()
+  btnLogin.SetFocus
+End Sub
+
+Private Sub txtLogin_AfterUpdate()
+'    If Len(txtLogin) = 0 Then
+'        Call eyeToCenter
+'    End If
+End Sub
+
+
+Private Sub txtLogin_Change()
+    Dim tamText As Integer
+    tamText = Len(Nz(txtLogin.text, ""))
+    If tamText = 0 Then eyeToCenter
+    
+    
+    If [Form_Happy Form].eyeLeft.Left - eyeLeftL < 80 Then
+        [Form_Happy Form].eyeLeft.Left = eyeLeftL - 65 + (tamText * 4)
+        [Form_Happy Form].eyeLeft.Top = eyeLeftT + 80
+        [Form_Happy Form].eyeRight.Left = eyeRightL - 65 + (tamText * 4)
+        [Form_Happy Form].eyeRight.Top = eyeRightT + 80
+    Else
+        Debug.Print
+    End If
+
+
+End Sub
+
+Private Sub txtLogin_GotFocus()
+    Call txtLogin_Change
+    Me.txtLogin.BackColor = 15060409
+End Sub
+
+Public Sub eyeToCenter()
+    [Form_Happy Form].eyeLeft.Left = eyeLeftL
+    [Form_Happy Form].eyeLeft.Top = eyeLeftT
+    [Form_Happy Form].eyeRight.Left = eyeRightL
+    [Form_Happy Form].eyeRight.Top = eyeRightT
+End Sub
+
+Private Sub txtLogin_LostFocus()
+    Call eyeToCenter
+    Me.txtLogin.BackColor = 16777215
+End Sub
+
+Sub GetAbsoluteCoordinates(ctlName As String)
+    Dim ctl As Control
+    Dim absLeft As Single
+    Dim absTop As Single
+    Dim msg As String
+    
+    Set ctl = Me.Controls(ctlName) 'ctl
+    
+    Do
+        If TypeName(ctl) = ctl.name Then Exit Do
+        MsgBox ctl.name & " " & TypeName(ctl)
+        On Error GoTo ExitDo
+        
+        absLeft = absLeft + ctl.Left
+        absTop = absTop + ctl.Top
+        
+        Set ctl = ctl.Parent
+    Loop
+    
+ExitDo:
+    ' absLeft = ctl.Left + ctl.Left
+    ' absTop = ctl.Top + ctl.Top
+    
+    msg = "Local Coordinates:" & vbCrLf & _
+    "Left: " & ctl.Left & vbCrLf & _
+    "Top: " & ctl.Top & vbCrLf
+    
+    msg = msg & "Absolute Coordinates: " & vbCrLf & _
+    "Left: " & absLeft & vbCrLf & _
+    "Top: " & absTop
+    
+    MsgBox msg
+
+End Sub
+
+
+
+Private Sub txtSenha_GotFocus()
+  EyeClosedL.Visible = True
+  EyeClosedR.Visible = True
+  Me.txtSenha.BackColor = 15060409
+End Sub
+
+Private Sub txtSenha_LostFocus()
+  EyeClosedL.Visible = False
+  EyeClosedR.Visible = False
+  Me.txtSenha.BackColor = 16777215
+End Sub
